@@ -8,6 +8,32 @@ st.set_page_config(page_title="Converção de dados Script Facturação",
                    layout="wide",
                    page_icon=":bar_chart:")
 
+
+@st.cache_data
+def carregar_facturacao(uploaded_file):
+    content = uploaded_file.read().decode("utf-8")
+    df = pd.read_csv(io.StringIO(content), sep='\t', names=colunas)
+    df = df[df['CONCEITO'] == 'X30']
+    df = pd.merge(df, unidade, on='UNIDADE', how='left')
+    df = pd.merge(df, regiao, on='Unidade', how='left')
+    df = pd.merge(df, produto, on='PRODUTO', how='left')
+    df['TP CLI'] = df['TP CLI'].astype(str)
+    df = pd.merge(df, tip_client, on='TP CLI', how='left')
+    df = pd.merge(df, tp_fact, on='TP FACT', how='left')
+    df = pd.merge(df, tarifa, on='COD TARIFA', how='left')
+
+    df = df[['EMP ID', 'Unidade', 'Região', 'Produto', 'DT PROC', 'DT FACT', 'NR FACT',
+             'CLI ID', 'CLI CONTA', 'CIL', 'Tipo_Factura', 'Tipo_Cliente', 'Tarifa',
+             'VAL TOT', 'CONCEITO', 'QTDE', 'VALOR']]
+
+    df['DT PROC'] = pd.to_datetime(df['DT PROC'], format='%Y%m%d', errors='coerce')
+    df['DT FACT'] = pd.to_datetime(df['DT FACT'], format='%Y%m%d', errors='coerce')
+    df['DT PROC'] = df['DT PROC'].dt.strftime('%d-%m-%Y')
+    df['DT FACT'] = df['DT FACT'].dt.strftime('%d-%m-%Y')
+    df['NR FACT'] = df['NR FACT'].astype(str)
+
+    return df
+
 #criar cabeçalho
 colunas = ['BOA IND', 'EMP ID', 'UNIDADE', 'PRODUTO', 'DT PROC', 'DT FACT', 'NR FACT', 'CLI ID', 'CLI CONTA', 'CIL',
            'TP FACT', 'TP CLI', 'COD TARIFA', 'VAL TOT', 'CONCEITO', 'QTDE', 'VALOR']
@@ -160,31 +186,8 @@ uploaded_file = st.file_uploader("Escolha um arquivo", type=["txt"])
 
 if uploaded_file is not None:
     # Lê o conteúdo como string e converte para DataFrame
-    content = uploaded_file.read().decode("utf-8")
-    factura = pd.read_csv(io.StringIO(content), sep='\t', names=colunas)
-    factura = factura.loc[factura['CONCEITO'] == 'X30']
-    fact = pd.merge(factura, unidade, on='UNIDADE', how='left')
-    fact1 = pd.merge(fact, regiao, on='Unidade', how='left')
-    fact2 = pd.merge(fact1, produto, on='PRODUTO', how='left')
-    fact2['TP CLI'] = fact2['TP CLI'].astype(str)
-    fact3 = pd.merge(fact2, tip_client, on='TP CLI', how='left')
-    fact4 = pd.merge(fact3, tp_fact, on='TP FACT', how='left')
-    fact5 = pd.merge(fact4, tarifa, on='COD TARIFA', how='left')
+    fact5 = carregar_facturacao(uploaded_file)
 
-    fact5 = fact5[['EMP ID', 'Unidade', 'Região', 'Produto', 'DT PROC', 'DT FACT', 'NR FACT', 'CLI ID', 'CLI CONTA',
-               'CIL', 'Tipo_Factura', 'Tipo_Cliente', 'Tarifa', 'VAL TOT', 'CONCEITO', 'QTDE', 'VALOR']]
-    fact5['DT PROC'] = pd.to_datetime(fact5['DT PROC'], format='%Y%m%d')
-    fact5['DT PROC'] = fact5['DT PROC'].dt.strftime('%d-%m-%Y')
-    fact5['DT FACT'] = pd.to_datetime(fact5['DT FACT'], format='%Y%m%d')
-    fact5['DT FACT'] = fact5['DT FACT'].dt.strftime('%d-%m-%Y')
-    fact5['NR FACT'] = fact5['NR FACT'].astype(str)
-    #fact3['VAL TOT'] = fact3['VAL TOT'].astype(str)
-    # Aplica a conversão para cada valor da coluna
-    #fact3['VAL TOT'] = fact3['VAL TOT'].str.replace('.', '', regex=False).str.replace(',', '.', regex=False).astype(float)
-    #fact3['VAL TOT'] = fact3['VAL TOT'].apply(lambda x: f"{x:,.0f}".replace(",", "X").replace(".", ",").replace("X", "."))
-    #fact3['VAL TOT'] = fact3['VAL TOT'].astype(str)
-    #fact3['VAL TOT'] = fact3['VAL TOT'].astype(str).str.replace(',', '.', regex=False)
-    #fact3['VAL TOT'] = fact3['VAL TOT'].astype(str).str.replace('.', ',', regex=False)
     st.markdown("---")
     # Ajuste de altura com CSS personalizado
     
